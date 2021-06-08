@@ -678,7 +678,7 @@ func TestGetAll(t *testing.T) {
 	ctx := context.Background()
 
 	db := &tests.DBMock{}
-	db.On("QueryRow", ctx, getAllReposDBQ, false).Return([]byte(`
+	db.On("QueryRow", ctx, getAllReposDBQ, false, 10, 1).Return([]byte(`
 	[{
         "repository_id": "00000000-0000-0000-0000-000000000001",
         "name": "repo1",
@@ -707,7 +707,7 @@ func TestGetAll(t *testing.T) {
 	`), nil)
 	m := NewManager(cfg, db, nil, nil)
 
-	r, err := m.GetAll(ctx, false)
+	r, err := m.GetAll(ctx, false, &hub.Pagination{Limit: 10, Offset: 1})
 	require.NoError(t, err)
 	assert.Len(t, r, 3)
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", r[0].RepositoryID)
@@ -740,24 +740,25 @@ func TestGetAllJSON(t *testing.T) {
 	t.Run("database error", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getAllReposDBQ, false).Return(nil, tests.ErrFakeDB)
+		db.On("QueryRow", ctx, getAllReposDBQ, false, 10, 1).Return(nil, tests.ErrFakeDB)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetAllJSON(ctx, false)
+		result, err := m.GetAllJSON(ctx, false, &hub.Pagination{Limit: 10, Offset: 1})
 		assert.Equal(t, tests.ErrFakeDB, err)
-		assert.Nil(t, dataJSON)
+		assert.Nil(t, result)
 		db.AssertExpectations(t)
 	})
 
 	t.Run("all repositories data returned successfully", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getAllReposDBQ, false).Return([]byte("dataJSON"), nil)
+		db.On("QueryRow", ctx, getAllReposDBQ, false, 10, 1).Return([]interface{}{[]byte("dataJSON"), 1}, nil)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetAllJSON(ctx, false)
+		result, err := m.GetAllJSON(ctx, false, &hub.Pagination{Limit: 10, Offset: 1})
 		assert.NoError(t, err)
-		assert.Equal(t, []byte("dataJSON"), dataJSON)
+		assert.Equal(t, []byte("dataJSON"), result.Data)
+		assert.Equal(t, 1, result.TotalCount)
 		db.AssertExpectations(t)
 	})
 }
@@ -838,7 +839,7 @@ func TestGetByKind(t *testing.T) {
 	ctx := context.Background()
 
 	db := &tests.DBMock{}
-	db.On("QueryRow", ctx, getReposByKindDBQ, hub.Helm, false).Return([]byte(`
+	db.On("QueryRow", ctx, getReposByKindDBQ, hub.Helm, false, 1, 1).Return([]byte(`
 	[{
         "repository_id": "00000000-0000-0000-0000-000000000001",
         "name": "repo1",
@@ -859,7 +860,7 @@ func TestGetByKind(t *testing.T) {
 	`), nil)
 	m := NewManager(cfg, db, nil, nil)
 
-	r, err := m.GetByKind(ctx, hub.Helm, false)
+	r, err := m.GetByKind(ctx, hub.Helm, false, &hub.Pagination{Limit: 1, Offset: 1})
 	require.NoError(t, err)
 	assert.Len(t, r, 2)
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", r[0].RepositoryID)
@@ -885,24 +886,26 @@ func TestGetByKindJSON(t *testing.T) {
 	t.Run("database error", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getReposByKindDBQ, hub.OLM, false).Return(nil, tests.ErrFakeDB)
+		db.On("QueryRow", ctx, getReposByKindDBQ, hub.OLM, false, 1, 1).Return(nil, tests.ErrFakeDB)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetByKindJSON(ctx, hub.OLM, false)
+		result, err := m.GetByKindJSON(ctx, hub.OLM, false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.Equal(t, tests.ErrFakeDB, err)
-		assert.Nil(t, dataJSON)
+		assert.Nil(t, result)
 		db.AssertExpectations(t)
 	})
 
 	t.Run("all repositories data returned successfully", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getReposByKindDBQ, hub.OLM, false).Return([]byte("dataJSON"), nil)
+		db.On("QueryRow", ctx, getReposByKindDBQ, hub.OLM, false, 1, 1).
+			Return([]interface{}{[]byte("dataJSON"), 1}, nil)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetByKindJSON(ctx, hub.OLM, false)
+		result, err := m.GetByKindJSON(ctx, hub.OLM, false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.NoError(t, err)
-		assert.Equal(t, []byte("dataJSON"), dataJSON)
+		assert.Equal(t, []byte("dataJSON"), result.Data)
+		assert.Equal(t, 1, result.TotalCount)
 		db.AssertExpectations(t)
 	})
 }
@@ -1131,38 +1134,40 @@ func TestGetOwnedByOrgJSON(t *testing.T) {
 		t.Parallel()
 		m := NewManager(cfg, nil, nil, nil)
 		assert.Panics(t, func() {
-			_, _ = m.GetOwnedByOrgJSON(context.Background(), "orgName", false)
+			_, _ = m.GetOwnedByOrgJSON(context.Background(), "orgName", false, nil)
 		})
 	})
 
 	t.Run("invalid input", func(t *testing.T) {
 		t.Parallel()
 		m := NewManager(cfg, nil, nil, nil)
-		_, err := m.GetOwnedByOrgJSON(ctx, "", false)
+		_, err := m.GetOwnedByOrgJSON(ctx, "", false, nil)
 		assert.True(t, errors.Is(err, hub.ErrInvalidInput))
 	})
 
 	t.Run("database error", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getOrgReposDBQ, "userID", "orgName", false).Return(nil, tests.ErrFakeDB)
+		db.On("QueryRow", ctx, getOrgReposDBQ, "userID", "orgName", false, 1, 1).Return(nil, tests.ErrFakeDB)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetOwnedByOrgJSON(ctx, "orgName", false)
+		result, err := m.GetOwnedByOrgJSON(ctx, "orgName", false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.Equal(t, tests.ErrFakeDB, err)
-		assert.Nil(t, dataJSON)
+		assert.Nil(t, result)
 		db.AssertExpectations(t)
 	})
 
 	t.Run("org repositories data returned successfully", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getOrgReposDBQ, "userID", "orgName", false).Return([]byte("dataJSON"), nil)
+		db.On("QueryRow", ctx, getOrgReposDBQ, "userID", "orgName", false, 1, 1).
+			Return([]interface{}{[]byte("dataJSON"), 1}, nil)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetOwnedByOrgJSON(ctx, "orgName", false)
+		result, err := m.GetOwnedByOrgJSON(ctx, "orgName", false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.NoError(t, err)
-		assert.Equal(t, []byte("dataJSON"), dataJSON)
+		assert.Equal(t, []byte("dataJSON"), result.Data)
+		assert.Equal(t, 1, result.TotalCount)
 		db.AssertExpectations(t)
 	})
 }
@@ -1174,31 +1179,33 @@ func TestGetOwnedByUserJSON(t *testing.T) {
 		t.Parallel()
 		m := NewManager(cfg, nil, nil, nil)
 		assert.Panics(t, func() {
-			_, _ = m.GetOwnedByUserJSON(context.Background(), false)
+			_, _ = m.GetOwnedByUserJSON(context.Background(), false, nil)
 		})
 	})
 
 	t.Run("database error", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getUserReposDBQ, "userID", false).Return(nil, tests.ErrFakeDB)
+		db.On("QueryRow", ctx, getUserReposDBQ, "userID", false, 1, 1).Return(nil, tests.ErrFakeDB)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetOwnedByUserJSON(ctx, false)
+		result, err := m.GetOwnedByUserJSON(ctx, false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.Equal(t, tests.ErrFakeDB, err)
-		assert.Nil(t, dataJSON)
+		assert.Nil(t, result)
 		db.AssertExpectations(t)
 	})
 
 	t.Run("user repositories data returned successfully", func(t *testing.T) {
 		t.Parallel()
 		db := &tests.DBMock{}
-		db.On("QueryRow", ctx, getUserReposDBQ, "userID", false).Return([]byte("dataJSON"), nil)
+		db.On("QueryRow", ctx, getUserReposDBQ, "userID", false, 1, 1).
+			Return([]interface{}{[]byte("dataJSON"), 1}, nil)
 		m := NewManager(cfg, db, nil, nil)
 
-		dataJSON, err := m.GetOwnedByUserJSON(ctx, false)
+		result, err := m.GetOwnedByUserJSON(ctx, false, &hub.Pagination{Limit: 1, Offset: 1})
 		assert.NoError(t, err)
-		assert.Equal(t, []byte("dataJSON"), dataJSON)
+		assert.Equal(t, []byte("dataJSON"), result.Data)
+		assert.Equal(t, 1, result.TotalCount)
 		db.AssertExpectations(t)
 	})
 }

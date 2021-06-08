@@ -1,6 +1,6 @@
 -- Start transaction and plan tests
 begin;
-select plan(2);
+select plan(3);
 
 -- Declare some variables
 \set user1ID '00000000-0000-0000-0000-000000000001'
@@ -10,9 +10,13 @@ select plan(2);
 
 
 -- No repositories at this point
-select is(
-    get_all_repositories(false)::jsonb,
-    '[]'::jsonb,
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer from get_all_repositories(false, 0, 0)
+    $$,
+    $$
+        values ('[]'::jsonb, 0)
+    $$,
     'With no repositories an empty json array is returned'
 );
 
@@ -27,43 +31,77 @@ insert into repository (repository_id, name, display_name, url, repository_kind_
 values (:'repo3ID', 'repo3', 'Repo 3', 'https://repo3.com', 1, :'user1ID');
 
 -- Run some tests
-select is(
-    get_all_repositories(false)::jsonb,
-    '[{
-        "repository_id": "00000000-0000-0000-0000-000000000001",
-        "name": "repo1",
-        "display_name": "Repo 1",
-        "url": "https://repo1.com",
-        "kind": 0,
-        "verified_publisher": false,
-        "official": false,
-        "disabled": false,
-        "scanner_disabled": false,
-        "user_alias": "user1"
-    }, {
-        "repository_id": "00000000-0000-0000-0000-000000000002",
-        "name": "repo2",
-        "display_name": "Repo 2",
-        "url": "https://repo2.com",
-        "kind": 0,
-        "verified_publisher": false,
-        "official": false,
-        "disabled": false,
-        "scanner_disabled": false,
-        "user_alias": "user1"
-    }, {
-        "repository_id": "00000000-0000-0000-0000-000000000003",
-        "name": "repo3",
-        "display_name": "Repo 3",
-        "url": "https://repo3.com",
-        "kind": 1,
-        "verified_publisher": false,
-        "official": false,
-        "disabled": false,
-        "scanner_disabled": false,
-        "user_alias": "user1"
-    }]'::jsonb,
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer from get_all_repositories(false, 0, 0)
+    $$,
+    $$
+        values (
+            '[
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000001",
+                    "name": "repo1",
+                    "display_name": "Repo 1",
+                    "url": "https://repo1.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "user_alias": "user1"
+                },
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000002",
+                    "name": "repo2",
+                    "display_name": "Repo 2",
+                    "url": "https://repo2.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "user_alias": "user1"
+                },
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000003",
+                    "name": "repo3",
+                    "display_name": "Repo 3",
+                    "url": "https://repo3.com",
+                    "kind": 1,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "user_alias": "user1"
+                }
+            ]'::jsonb,
+            3)
+    $$,
     'Repositories 1, 2 and 3 are returned'
+);
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer from get_all_repositories(false, 1, 1)
+    $$,
+    $$
+        values (
+            '[
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000002",
+                    "name": "repo2",
+                    "display_name": "Repo 2",
+                    "url": "https://repo2.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "user_alias": "user1"
+                }
+            ]'::jsonb,
+            3)
+    $$,
+    'Using a limit and offset of 1, repository 2 returned'
 );
 
 -- Finish tests and rollback transaction

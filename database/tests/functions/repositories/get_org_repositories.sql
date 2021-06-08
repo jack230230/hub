@@ -1,6 +1,6 @@
 -- Start transaction and plan tests
 begin;
-select plan(3);
+select plan(4);
 
 -- Declare some variables
 \set user1ID '00000000-0000-0000-0000-000000000001'
@@ -23,9 +23,14 @@ insert into user__organization (user_id, organization_id, confirmed) values(:'us
 insert into user__organization (user_id, organization_id, confirmed) values(:'user1ID', :'org2ID', true);
 
 -- No repositories at this point
-select is(
-    get_org_repositories(:'user1ID', 'org1', false)::jsonb,
-    '[]'::jsonb,
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer
+        from get_org_repositories('00000000-0000-0000-0000-000000000001', 'org1', false, 0, 0)
+    $$,
+    $$
+        values ('[]'::jsonb, 0)
+    $$,
     'With no repositories an empty json array is returned'
 );
 
@@ -96,41 +101,84 @@ insert into repository (
 );
 
 -- Run some tests
-select is(
-    get_org_repositories(:'user1ID', 'org1', false)::jsonb,
-    '[{
-        "repository_id": "00000000-0000-0000-0000-000000000001",
-        "name": "repo1",
-        "display_name": "Repo 1",
-        "url": "https://repo1.com",
-        "kind": 0,
-        "verified_publisher": false,
-        "official": false,
-        "disabled": false,
-        "scanner_disabled": false,
-        "last_tracking_ts": 0,
-        "last_tracking_errors": "error1\\nerror2\\nerror3",
-        "organization_name": "org1",
-        "organization_display_name": "Organization 1"
-    }, {
-        "repository_id": "00000000-0000-0000-0000-000000000002",
-        "name": "repo2",
-        "display_name": "Repo 2",
-        "url": "https://repo2.com",
-        "kind": 0,
-        "verified_publisher": false,
-        "official": false,
-        "disabled": false,
-        "scanner_disabled": false,
-        "organization_name": "org1",
-        "organization_display_name": "Organization 1"
-    }]'::jsonb,
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer
+        from get_org_repositories('00000000-0000-0000-0000-000000000001', 'org1', false, 0, 0)
+    $$,
+    $$
+        values (
+            '[
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000001",
+                    "name": "repo1",
+                    "display_name": "Repo 1",
+                    "url": "https://repo1.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "last_tracking_ts": 0,
+                    "last_tracking_errors": "error1\\nerror2\\nerror3",
+                    "organization_name": "org1",
+                    "organization_display_name": "Organization 1"
+                },
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000002",
+                    "name": "repo2",
+                    "display_name": "Repo 2",
+                    "url": "https://repo2.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "organization_name": "org1",
+                    "organization_display_name": "Organization 1"
+                }
+            ]'::jsonb,
+            2
+        )
+    $$,
     'Repositories belonging to user provided are returned as a json array of objects'
 );
-select is(
-    get_org_repositories(:'user2ID', 'org1', false)::jsonb,
-    '[]'::jsonb,
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer
+        from get_org_repositories('00000000-0000-0000-0000-000000000002', 'org1', false, 0, 0)
+    $$,
+    $$
+        values ('[]'::jsonb, 0)
+    $$,
     'No repositories are returned as user provided does not belong to the organization'
+);
+select results_eq(
+    $$
+        select data::jsonb, total_count::integer
+        from get_org_repositories('00000000-0000-0000-0000-000000000001', 'org1', false, 1, 1)
+    $$,
+    $$
+        values (
+            '[
+                {
+                    "repository_id": "00000000-0000-0000-0000-000000000002",
+                    "name": "repo2",
+                    "display_name": "Repo 2",
+                    "url": "https://repo2.com",
+                    "kind": 0,
+                    "verified_publisher": false,
+                    "official": false,
+                    "disabled": false,
+                    "scanner_disabled": false,
+                    "organization_name": "org1",
+                    "organization_display_name": "Organization 1"
+                }
+            ]'::jsonb,
+            2
+        )
+    $$,
+    'Using limit and offset, only one repository belonging to the organization provided is returned'
 );
 
 -- Finish tests and rollback transaction

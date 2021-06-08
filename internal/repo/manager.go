@@ -300,16 +300,45 @@ func (m *Manager) Delete(ctx context.Context, name string) error {
 }
 
 // GetAll returns all available repositories.
-func (m *Manager) GetAll(ctx context.Context, includeCredentials bool) ([]*hub.Repository, error) {
+func (m *Manager) GetAll(
+	ctx context.Context,
+	includeCredentials bool,
+	p *hub.Pagination,
+) ([]*hub.Repository, error) {
+	if p == nil {
+		p = &hub.Pagination{}
+	}
 	var r []*hub.Repository
-	err := util.DBQueryUnmarshal(ctx, m.db, &r, getAllReposDBQ, includeCredentials)
+	err := util.DBQueryUnmarshal(
+		ctx,
+		m.db,
+		&r,
+		getAllReposDBQ,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 	return r, err
 }
 
 // GetAllJSON returns all available repositories as a json array, which is
 // built by the database.
-func (m *Manager) GetAllJSON(ctx context.Context, includeCredentials bool) ([]byte, error) {
-	return util.DBQueryJSON(ctx, m.db, getAllReposDBQ, includeCredentials)
+func (m *Manager) GetAllJSON(
+	ctx context.Context,
+	includeCredentials bool,
+	p *hub.Pagination,
+) (*hub.JSONQueryResult, error) {
+	if p == nil {
+		p = &hub.Pagination{}
+	}
+	return util.DBQueryJSONWithPagination(
+		ctx,
+		m.db,
+		getAllReposDBQ,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 }
 
 // GetByID returns the repository identified by the id provided.
@@ -337,9 +366,22 @@ func (m *Manager) GetByKind(
 	ctx context.Context,
 	kind hub.RepositoryKind,
 	includeCredentials bool,
+	p *hub.Pagination,
 ) ([]*hub.Repository, error) {
+	if p == nil {
+		p = &hub.Pagination{}
+	}
 	var r []*hub.Repository
-	err := util.DBQueryUnmarshal(ctx, m.db, &r, getReposByKindDBQ, kind, includeCredentials)
+	err := util.DBQueryUnmarshal(
+		ctx,
+		m.db,
+		&r,
+		getReposByKindDBQ,
+		kind,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 	return r, err
 }
 
@@ -349,8 +391,20 @@ func (m *Manager) GetByKindJSON(
 	ctx context.Context,
 	kind hub.RepositoryKind,
 	includeCredentials bool,
-) ([]byte, error) {
-	return util.DBQueryJSON(ctx, m.db, getReposByKindDBQ, kind, includeCredentials)
+	p *hub.Pagination,
+) (*hub.JSONQueryResult, error) {
+	if p == nil {
+		p = &hub.Pagination{}
+	}
+	return util.DBQueryJSONWithPagination(
+		ctx,
+		m.db,
+		getReposByKindDBQ,
+		kind,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 }
 
 // GetByName returns the repository identified by the name provided.
@@ -450,23 +504,51 @@ func (m *Manager) GetOwnedByOrgJSON(
 	ctx context.Context,
 	orgName string,
 	includeCredentials bool,
-) ([]byte, error) {
+	p *hub.Pagination,
+) (*hub.JSONQueryResult, error) {
 	userID := ctx.Value(hub.UserIDKey).(string)
 
 	// Validate input
 	if orgName == "" {
 		return nil, fmt.Errorf("%w: %s", hub.ErrInvalidInput, "organization name not provided")
 	}
+	if p == nil {
+		p = &hub.Pagination{}
+	}
 
 	// Get org repositories from database
-	return util.DBQueryJSON(ctx, m.db, getOrgReposDBQ, userID, orgName, includeCredentials)
+	return util.DBQueryJSONWithPagination(
+		ctx,
+		m.db,
+		getOrgReposDBQ,
+		userID,
+		orgName,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 }
 
 // GetOwnedByUserJSON returns all repositories that belong to the user making
 // the request.
-func (m *Manager) GetOwnedByUserJSON(ctx context.Context, includeCredentials bool) ([]byte, error) {
+func (m *Manager) GetOwnedByUserJSON(
+	ctx context.Context,
+	includeCredentials bool,
+	p *hub.Pagination,
+) (*hub.JSONQueryResult, error) {
 	userID := ctx.Value(hub.UserIDKey).(string)
-	return util.DBQueryJSON(ctx, m.db, getUserReposDBQ, userID, includeCredentials)
+	if p == nil {
+		p = &hub.Pagination{}
+	}
+	return util.DBQueryJSONWithPagination(
+		ctx,
+		m.db,
+		getUserReposDBQ,
+		userID,
+		includeCredentials,
+		p.Limit,
+		p.Offset,
+	)
 }
 
 // GetRemoteDigest gets the repository's digest available in the remote.

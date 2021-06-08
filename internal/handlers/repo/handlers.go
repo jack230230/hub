@@ -2,7 +2,9 @@ package repo
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/artifacthub/hub/internal/handlers/helpers"
@@ -120,13 +122,21 @@ func (h *Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 
 // GetAll is an http handler that returns all the repositories available.
 func (h *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
-	dataJSON, err := h.repoManager.GetAllJSON(r.Context(), false)
+	p, err := helpers.GetPagination(r.URL.Query(), helpers.PaginationLimit, helpers.PaginationMaxLimit)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", hub.ErrInvalidInput, err.Error())
+		h.logger.Error().Err(err).Str("query", r.URL.RawQuery).Str("method", "GetAll").Send()
+		helpers.RenderErrorJSON(w, err)
+		return
+	}
+	result, err := h.repoManager.GetAllJSON(r.Context(), false, p)
 	if err != nil {
 		h.logger.Error().Err(err).Str("method", "GetAll").Send()
 		helpers.RenderErrorJSON(w, err)
 		return
 	}
-	helpers.RenderJSON(w, dataJSON, helpers.DefaultAPICacheMaxAge, http.StatusOK)
+	w.Header().Set(helpers.PaginationTotalCount, strconv.Itoa(result.TotalCount))
+	helpers.RenderJSON(w, result.Data, helpers.DefaultAPICacheMaxAge, http.StatusOK)
 }
 
 // GetByKind is an http handler that returns all the repositories available of
@@ -138,13 +148,21 @@ func (h *Handlers) GetByKind(w http.ResponseWriter, r *http.Request) {
 		helpers.RenderErrorJSON(w, hub.ErrInvalidInput)
 		return
 	}
-	dataJSON, err := h.repoManager.GetByKindJSON(r.Context(), kind, false)
+	p, err := helpers.GetPagination(r.URL.Query(), helpers.PaginationLimit, helpers.PaginationMaxLimit)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", hub.ErrInvalidInput, err.Error())
+		h.logger.Error().Err(err).Str("query", r.URL.RawQuery).Str("method", "GetByKind").Send()
+		helpers.RenderErrorJSON(w, err)
+		return
+	}
+	result, err := h.repoManager.GetByKindJSON(r.Context(), kind, false, p)
 	if err != nil {
 		h.logger.Error().Err(err).Str("method", "GetByKind").Send()
 		helpers.RenderErrorJSON(w, err)
 		return
 	}
-	helpers.RenderJSON(w, dataJSON, helpers.DefaultAPICacheMaxAge, http.StatusOK)
+	w.Header().Set(helpers.PaginationTotalCount, strconv.Itoa(result.TotalCount))
+	helpers.RenderJSON(w, result.Data, helpers.DefaultAPICacheMaxAge, http.StatusOK)
 }
 
 // GetOwnedByOrg is an http handler that returns the repositories owned by the
@@ -152,25 +170,41 @@ func (h *Handlers) GetByKind(w http.ResponseWriter, r *http.Request) {
 // organization.
 func (h *Handlers) GetOwnedByOrg(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "orgName")
-	dataJSON, err := h.repoManager.GetOwnedByOrgJSON(r.Context(), orgName, true)
+	p, err := helpers.GetPagination(r.URL.Query(), helpers.PaginationLimit, helpers.PaginationMaxLimit)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", hub.ErrInvalidInput, err.Error())
+		h.logger.Error().Err(err).Str("query", r.URL.RawQuery).Str("method", "GetOwnedByOrg").Send()
+		helpers.RenderErrorJSON(w, err)
+		return
+	}
+	result, err := h.repoManager.GetOwnedByOrgJSON(r.Context(), orgName, true, p)
 	if err != nil {
 		h.logger.Error().Err(err).Str("method", "GetOwnedByOrg").Send()
 		helpers.RenderErrorJSON(w, err)
 		return
 	}
-	helpers.RenderJSON(w, dataJSON, 0, http.StatusOK)
+	w.Header().Set(helpers.PaginationTotalCount, strconv.Itoa(result.TotalCount))
+	helpers.RenderJSON(w, result.Data, 0, http.StatusOK)
 }
 
 // GetOwnedByUser is an http handler that returns the repositories owned by the
 // user doing the request.
 func (h *Handlers) GetOwnedByUser(w http.ResponseWriter, r *http.Request) {
-	dataJSON, err := h.repoManager.GetOwnedByUserJSON(r.Context(), true)
+	p, err := helpers.GetPagination(r.URL.Query(), helpers.PaginationLimit, helpers.PaginationMaxLimit)
+	if err != nil {
+		err = fmt.Errorf("%w: %s", hub.ErrInvalidInput, err.Error())
+		h.logger.Error().Err(err).Str("query", r.URL.RawQuery).Str("method", "GetOwnedByUser").Send()
+		helpers.RenderErrorJSON(w, err)
+		return
+	}
+	result, err := h.repoManager.GetOwnedByUserJSON(r.Context(), true, p)
 	if err != nil {
 		h.logger.Error().Err(err).Str("method", "GetOwnedByUser").Send()
 		helpers.RenderErrorJSON(w, err)
 		return
 	}
-	helpers.RenderJSON(w, dataJSON, 0, http.StatusOK)
+	w.Header().Set(helpers.PaginationTotalCount, strconv.Itoa(result.TotalCount))
+	helpers.RenderJSON(w, result.Data, 0, http.StatusOK)
 }
 
 // Transfer is an http handler that transfers the provided repository to a

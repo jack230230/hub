@@ -54,7 +54,7 @@ func GetRepositories(
 			if err != nil {
 				return nil, fmt.Errorf("invalid repository kind found in config: %s", kindName)
 			}
-			kindRepos, err := rm.GetByKind(ctx, kind, true)
+			kindRepos, err := rm.GetByKind(ctx, kind, true, nil)
 			if err != nil {
 				return nil, fmt.Errorf("error getting repositories by kind (%s): %w", kindName, err)
 			}
@@ -62,7 +62,7 @@ func GetRepositories(
 		}
 	default:
 		var err error
-		repos, err = rm.GetAll(ctx, true)
+		repos, err = rm.GetAll(ctx, true, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error getting all repositories: %w", err)
 		}

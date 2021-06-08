@@ -400,7 +400,10 @@ func TestGetAll(t *testing.T) {
 		r = r.WithContext(context.WithValue(r.Context(), hub.UserIDKey, "userID"))
 
 		hw := newHandlersWrapper()
-		hw.rm.On("GetAllJSON", r.Context(), false).Return([]byte("dataJSON"), nil)
+		hw.rm.On("GetAllJSON", r.Context(), false).Return(&hub.JSONQueryResult{
+			Data:       []byte("dataJSON"),
+			TotalCount: 1,
+		}, nil)
 		hw.h.GetAll(w, r)
 		resp := w.Result()
 		defer resp.Body.Close()
@@ -408,6 +411,7 @@ func TestGetAll(t *testing.T) {
 		data, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, h.Get(helpers.PaginationTotalCount), "1")
 		assert.Equal(t, "application/json", h.Get("Content-Type"))
 		assert.Equal(t, helpers.BuildCacheControlHeader(helpers.DefaultAPICacheMaxAge), h.Get("Cache-Control"))
 		assert.Equal(t, []byte("dataJSON"), data)
@@ -462,7 +466,10 @@ func TestGetByKind(t *testing.T) {
 		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
 		hw := newHandlersWrapper()
-		hw.rm.On("GetByKindJSON", r.Context(), hub.OLM, false).Return([]byte("dataJSON"), nil)
+		hw.rm.On("GetByKindJSON", r.Context(), hub.OLM, false).Return(&hub.JSONQueryResult{
+			Data:       []byte("dataJSON"),
+			TotalCount: 1,
+		}, nil)
 		hw.h.GetByKind(w, r)
 		resp := w.Result()
 		defer resp.Body.Close()
@@ -470,6 +477,7 @@ func TestGetByKind(t *testing.T) {
 		data, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, h.Get(helpers.PaginationTotalCount), "1")
 		assert.Equal(t, "application/json", h.Get("Content-Type"))
 		assert.Equal(t, helpers.BuildCacheControlHeader(helpers.DefaultAPICacheMaxAge), h.Get("Cache-Control"))
 		assert.Equal(t, []byte("dataJSON"), data)
@@ -510,7 +518,10 @@ func TestGetOwnedByOrg(t *testing.T) {
 		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
 		hw := newHandlersWrapper()
-		hw.rm.On("GetOwnedByOrgJSON", r.Context(), "org1").Return([]byte("dataJSON"), nil)
+		hw.rm.On("GetOwnedByOrgJSON", r.Context(), "org1").Return(&hub.JSONQueryResult{
+			Data:       []byte("dataJSON"),
+			TotalCount: 1,
+		}, nil)
 		hw.h.GetOwnedByOrg(w, r)
 		resp := w.Result()
 		defer resp.Body.Close()
@@ -518,6 +529,7 @@ func TestGetOwnedByOrg(t *testing.T) {
 		data, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, h.Get(helpers.PaginationTotalCount), "1")
 		assert.Equal(t, "application/json", h.Get("Content-Type"))
 		assert.Equal(t, helpers.BuildCacheControlHeader(0), h.Get("Cache-Control"))
 		assert.Equal(t, []byte("dataJSON"), data)
@@ -568,7 +580,10 @@ func TestGetOwnedByUser(t *testing.T) {
 		r = r.WithContext(context.WithValue(r.Context(), hub.UserIDKey, "userID"))
 
 		hw := newHandlersWrapper()
-		hw.rm.On("GetOwnedByUserJSON", r.Context()).Return([]byte("dataJSON"), nil)
+		hw.rm.On("GetOwnedByUserJSON", r.Context()).Return(&hub.JSONQueryResult{
+			Data:       []byte("dataJSON"),
+			TotalCount: 1,
+		}, nil)
 		hw.h.GetOwnedByUser(w, r)
 		resp := w.Result()
 		defer resp.Body.Close()
@@ -576,6 +591,7 @@ func TestGetOwnedByUser(t *testing.T) {
 		data, _ := ioutil.ReadAll(resp.Body)
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, h.Get(helpers.PaginationTotalCount), "1")
 		assert.Equal(t, "application/json", h.Get("Content-Type"))
 		assert.Equal(t, helpers.BuildCacheControlHeader(0), h.Get("Cache-Control"))
 		assert.Equal(t, []byte("dataJSON"), data)
