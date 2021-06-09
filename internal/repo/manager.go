@@ -33,13 +33,13 @@ const (
 	checkRepoNameAvailDBQ     = `select repository_id from repository where name = $1`
 	checkRepoURLAvailDBQ      = `select repository_id from repository where trim(trailing '/' from url) = $1`
 	deleteRepoDBQ             = `select delete_repository($1::uuid, $2::text)`
-	getAllReposDBQ            = `select get_all_repositories($1::boolean)`
-	getOrgReposDBQ            = `select get_org_repositories($1::uuid, $2::text, $3::boolean)`
+	getAllReposDBQ            = `select get_all_repositories($1::boolean, $2::int, $3::int)`
+	getOrgReposDBQ            = `select get_org_repositories($1::uuid, $2::text, $3::boolean, $4::int, $5::int)`
 	getRepoByIDDBQ            = `select get_repository_by_id($1::uuid, $2::boolean)`
 	getRepoByNameDBQ          = `select get_repository_by_name($1::text, $2::boolean)`
 	getRepoPkgsDigestDBQ      = `select get_repository_packages_digest($1::uuid)`
-	getReposByKindDBQ         = `select get_repositories_by_kind($1::int, $2::boolean)`
-	getUserReposDBQ           = `select get_user_repositories($1::uuid, $2::boolean)`
+	getReposByKindDBQ         = `select get_repositories_by_kind($1::int, $2::boolean, $3::int, $4::int)`
+	getUserReposDBQ           = `select get_user_repositories($1::uuid, $2::boolean, $3::int, $4::int)`
 	getUserEmailDBQ           = `select email from "user" where user_id = $1`
 	setLastScanningResultsDBQ = `select set_last_scanning_results($1::uuid, $2::text, $3::boolean)`
 	setLastTrackingResultsDBQ = `select set_last_tracking_results($1::uuid, $2::text, $3::boolean)`
