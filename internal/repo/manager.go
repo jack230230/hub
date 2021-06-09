@@ -299,38 +299,52 @@ func (m *Manager) Delete(ctx context.Context, name string) error {
 	return err
 }
 
-// GetAll returns all available repositories.
+// GetAll returns all available repositories. If pagination is nil, all
+// repositories will be fetched.
 func (m *Manager) GetAll(
 	ctx context.Context,
 	includeCredentials bool,
 	p *hub.Pagination,
 ) ([]*hub.Repository, error) {
+	// Validate input
 	if p == nil {
 		p = &hub.Pagination{}
 	}
-	var r []*hub.Repository
-	err := util.DBQueryUnmarshal(
+
+	// Get repositories from database
+	result, err := util.DBQueryJSONWithPagination(
 		ctx,
 		m.db,
-		&r,
 		getAllReposDBQ,
 		includeCredentials,
 		p.Limit,
 		p.Offset,
 	)
+	if err != nil {
+		return nil, err
+	}
+	var r []*hub.Repository
+	if err := json.Unmarshal(result.Data, &r); err != nil {
+		return nil, err
+	}
+
 	return r, err
 }
 
 // GetAllJSON returns all available repositories as a json array, which is
-// built by the database.
+// built by the database. If pagination is nil, all repositories will be
+// fetched.
 func (m *Manager) GetAllJSON(
 	ctx context.Context,
 	includeCredentials bool,
 	p *hub.Pagination,
 ) (*hub.JSONQueryResult, error) {
+	// Validate input
 	if p == nil {
 		p = &hub.Pagination{}
 	}
+
+	// Get repositories from database
 	return util.DBQueryJSONWithPagination(
 		ctx,
 		m.db,
@@ -368,20 +382,29 @@ func (m *Manager) GetByKind(
 	includeCredentials bool,
 	p *hub.Pagination,
 ) ([]*hub.Repository, error) {
+	// Validate input
 	if p == nil {
 		p = &hub.Pagination{}
 	}
-	var r []*hub.Repository
-	err := util.DBQueryUnmarshal(
+
+	// Get repositories from database
+	result, err := util.DBQueryJSONWithPagination(
 		ctx,
 		m.db,
-		&r,
 		getReposByKindDBQ,
 		kind,
 		includeCredentials,
 		p.Limit,
 		p.Offset,
 	)
+	if err != nil {
+		return nil, err
+	}
+	var r []*hub.Repository
+	if err := json.Unmarshal(result.Data, &r); err != nil {
+		return nil, err
+	}
+
 	return r, err
 }
 
@@ -393,9 +416,12 @@ func (m *Manager) GetByKindJSON(
 	includeCredentials bool,
 	p *hub.Pagination,
 ) (*hub.JSONQueryResult, error) {
+	// Validate input
 	if p == nil {
 		p = &hub.Pagination{}
 	}
+
+	// Get repositories from database
 	return util.DBQueryJSONWithPagination(
 		ctx,
 		m.db,
