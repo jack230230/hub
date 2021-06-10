@@ -14,8 +14,6 @@ application:
       dependLabelSelector:
         pods: 
           - "app=postgresql"
-        jobs:
-          - "job-name=db-migrator-install"
       containers:
         - name: hub
           dev:
