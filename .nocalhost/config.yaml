@@ -11,9 +11,6 @@ application:
   services:
     - name: hub
       serviceType: deployment
-      dependLabelSelector:
-        pods: 
-          - "app=postgresql"
       containers:
         - name: hub
           dev:
