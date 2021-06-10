@@ -1,0 +1,21 @@
+name: artifact-hub
+type: helmGit
+resourcePath: ["."]
+
+onPreInstall: []
+
+services:
+  - name: hub
+    serviceType: deployment
+    gitUrl: https://github.com/jack230230/hub
+    devContainerImage: codingcorp-docker.pkg.coding.net/nocalhost/dev-images/golang:latest
+    workDir: /root/nocalhost-dev
+    persistentVolumeDirs:
+    - path: /root
+    buildCommand: []
+    runCommand: []
+    debugCommand: []
+    syncFilePattern: 
+    - "."
+    ignoreFilePattern: 
+    - ".git"
