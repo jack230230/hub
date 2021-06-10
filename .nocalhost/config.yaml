@@ -1,21 +1,40 @@
-name: artifact-hub
-type: helmGit
-resourcePath: ["."]
+configProperties:
+  version: v2
 
-onPreInstall: []
-
-services:
-  - name: hub
-    serviceType: deployment
-    gitUrl: https://github.com/jack230230/hub
-    devContainerImage: codingcorp-docker.pkg.coding.net/nocalhost/dev-images/golang:latest
-    workDir: /root/nocalhost-dev
-    persistentVolumeDirs:
-    - path: /root
-    buildCommand: []
-    runCommand: []
-    debugCommand: []
-    syncFilePattern: 
-    - "."
-    ignoreFilePattern: 
-    - ".git"
+application:
+  name: artifact-hub
+  manifestType: helmGit
+  helmValues:
+    - key: postgresql.persistence.size
+      value: 10Gi
+  services:
+    - name: hub
+      serviceType: deployment
+      dependLabelSelector:
+        pods: 
+          - "app=postgresql"
+        jobs:
+          - "job-name=db-migrator-install"
+      containers:
+        - name: hub
+          dev:
+            gitUrl: https://github.com/jack230230/hub.git
+            image: codingcorp-docker.pkg.coding.net/nocalhost/dev-images/golang:latest
+            shell: "bash"
+            workDir: "/root/nocalhost-dev"
+            resources:
+              limits:
+                cpu: "1"
+                memory: 1Gi
+              requests:
+                cpu: "0.5"
+                memory: 512Mi
+            persistentVolumeDirs:
+              - path: "/root"
+                capacity: 10Gi
+            sync: 
+              type: send
+              filePattern: 
+                - "."
+              ignoreFilePattern:
+                - ".git"
