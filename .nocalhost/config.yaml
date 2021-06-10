@@ -8,6 +8,12 @@ application:
   helmValues:
     - key: postgresql.persistence.size
       value: 10Gi
+    - key: hub.ingress.annotations
+      value:
+        kubernetes.io/ingress.class: nginx-internal
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: ip
+        alb.ingress.kubernetes.io/listen-ports: '[{ "HTTP": 80 }]'
   services:
     - name: hub
       serviceType: deployment
