@@ -4,6 +4,7 @@ configProperties:
 application:
   name: artifact-hub
   manifestType: helmGit
+  resourcePath: ["charts/artifact-hub"]
   helmValues:
     - key: postgresql.persistence.size
       value: 10Gi
